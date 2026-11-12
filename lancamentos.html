@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Lançamentos{% endblock %}
+{% block content %}
+
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">Operação</span>
+    <h1>Lançamentos</h1>
+    <p>Registre, acompanhe e atualize cada solicitação de nota.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('lixeira') }}">Abrir lixeira</a>
+</section>
+
+<section class="card">
+  <div class="card-header-inline"><div><span class="eyebrow">Novo</span><h2>Novo lançamento</h2></div></div>
+
+  {% if duplicado %}
+    <div class="duplicate-alert">
+      <div>
+        <strong>Possível lançamento duplicado</strong>
+        <span>Já existe o lançamento #{{ duplicado.id }} para {{ duplicado.empresa }} em {{ duplicado.data|data_br }}, com as mesmas quantidades.</span>
+      </div>
+      <button type="button" class="btn btn-warning" data-confirm-duplicate="#form-lancamento">Registrar mesmo assim</button>
+    </div>
+  {% endif %}
+
+  <form method="post" id="form-lancamento" class="form-grid form-grid-large" autocomplete="off">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="confirmar_duplicado" value="0">
+    <div class="field">
+      <label for="data">Data do pedido</label>
+      <input type="date" id="data" name="data" value="{{ form_data.data }}" required>
+    </div>
+    <div class="field">
+      <label for="codigo">Código da empresa</label>
+      <input type="text" id="codigo" name="codigo" list="lista-empresas" value="{{ form_data.codigo }}" placeholder="Ex.: 44" required data-company-code>
+      <datalist id="lista-empresas">
+        {% for e in empresas %}<option value="{{ e.codigo }}">{{ e.nome }}</option>{% endfor %}
+      </datalist>
+    </div>
+    <div class="field field-span-2">
+      <label>Empresa selecionada</label>
+      <div id="empresa-preview" class="preview" data-company-preview>—</div>
+    </div>
+    <div class="field">
+      <label for="tipo_nota">Tipo de nota</label>
+      <select id="tipo_nota" name="tipo_nota" required>
+        <option value="">Selecione</option>
+        {% for tipo in ['NF','NFS','CTE'] %}<option value="{{ tipo }}" {{ 'selected' if form_data.tipo_nota == tipo }}>{{ tipo }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="qtd_nf">Qtd. NF</label>
+      <input type="number" id="qtd_nf" name="qtd_nf" min="0" value="{{ form_data.qtd_nf }}">
+    </div>
+    <div class="field">
+      <label for="qtd_nfs">Qtd. NFS</label>
+      <input type="number" id="qtd_nfs" name="qtd_nfs" min="0" value="{{ form_data.qtd_nfs }}">
+    </div>
+    <div class="field">
+      <label for="qtd_cte">Qtd. CTE</label>
+      <input type="number" id="qtd_cte" name="qtd_cte" min="0" value="{{ form_data.qtd_cte }}">
+    </div>
+    <div class="field">
+      <label for="status">Status</label>
+      <select id="status" name="status">
+        {% for status in status_validos %}<option value="{{ status }}" {{ 'selected' if form_data.status == status }}>{{ status_labels[status] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="prazo">Prazo</label>
+      <input type="date" id="prazo" name="prazo" value="{{ form_data.prazo }}">
+    </div>
+    <div class="field field-span-2">
+      <label for="responsavel">Responsável pelo atendimento</label>
+      <input type="text" id="responsavel" name="responsavel" list="lista-responsaveis" value="{{ form_data.responsavel }}" required>
+      <datalist id="lista-responsaveis">{% for nome in responsaveis %}<option value="{{ nome }}">{% endfor %}</datalist>
+    </div>
+    <div class="field field-span-2">
+      <label for="observacao">Observação</label>
+      <textarea id="observacao" name="observacao" rows="3" maxlength="2000" placeholder="Informações visíveis no acompanhamento e na exportação">{{ form_data.observacao }}</textarea>
+    </div>
+    <div class="field field-span-2">
+      <label for="observacoes_internas">Observações internas</label>
+      <textarea id="observacoes_internas" name="observacoes_internas" rows="3" maxlength="4000" placeholder="Anotações internas da equipe">{{ form_data.observacoes_internas }}</textarea>
+    </div>
+    <div class="form-actions field-span-4">
+      <button type="submit" class="btn btn-primary">Registrar lançamento</button>
+      <button type="reset" class="btn btn-ghost-text">Limpar formulário</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header-inline"><div><span class="eyebrow">Pesquisa</span><h2>Buscar e filtrar</h2></div></div>
+  <form method="get" class="filter-grid">
+    <div class="field field-span-2">
+      <label for="f-busca">Busca rápida</label>
+      <input type="search" id="f-busca" name="busca" value="{{ filtros.busca }}" placeholder="Código, empresa, CPF/CNPJ ou observação">
+    </div>
+    <div class="field">
+      <label for="f-empresa">Empresa</label>
+      <select id="f-empresa" name="empresa">
+        <option value="">Todas</option>
+        {% for e in empresas %}<option value="{{ e.codigo }}" {{ 'selected' if filtros.empresa == e.codigo|string }}>{{ e.codigo }} — {{ e.nome }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-status">Status</label>
+      <select id="f-status" name="status">
+        <option value="">Todos</option>
+        {% for status in status_validos %}<option value="{{ status }}" {{ 'selected' if filtros.status == status }}>{{ status_labels[status] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-tipo">Tipo</label>
+      <select id="f-tipo" name="tipo_nota">
+        <option value="">Todos</option>
+        {% for tipo in ['NF','NFS','CTE'] %}<option value="{{ tipo }}" {{ 'selected' if filtros.tipo_nota == tipo }}>{{ tipo }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-responsavel">Responsável</label>
+      <select id="f-responsavel" name="responsavel">
+        <option value="">Todos</option>
+        {% for nome in responsaveis %}<option value="{{ nome }}" {{ 'selected' if filtros.responsavel == nome }}>{{ nome }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field"><label for="f-de">De</label><input type="date" id="f-de" name="data_de" value="{{ filtros.data_de }}"></div>
+    <div class="field"><label for="f-ate">Até</label><input type="date" id="f-ate" name="data_ate" value="{{ filtros.data_ate }}"></div>
+    <div class="filter-actions field-span-4">
+      <button type="submit" class="btn btn-primary">Aplicar filtros</button>
+      <a href="{{ url_for('lancamentos') }}" class="btn btn-secondary">Limpar filtros</a>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <div class="card-header-inline card-header-wrap">
+    <div><span class="eyebrow">Registros</span><h2>Lançamentos encontrados <span class="count-pill">{{ paginacao.total }}</span></h2></div>
+    {% if current_user_admin and paginacao.total %}
+      <form method="post" action="{{ url_for('limpar_lancamentos') }}" class="js-confirm"
+            data-confirm-title="Mover todos para a lixeira"
+            data-confirm-message="Um backup será criado automaticamente e todos os lançamentos ativos serão enviados para a lixeira."
+            data-confirm-phrase="LIMPAR">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="confirmacao">
+        <button type="submit" class="btn btn-danger-outline">Limpar todos</button>
+      </form>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+    <table class="ledger responsive-table">
+      <thead>
+        <tr><th>Pedido</th><th>Empresa</th><th>Tipo / Quantidades</th><th>Status</th><th>Responsável</th><th>Prazo</th><th>Atualização</th><th>Ações</th></tr>
+      </thead>
+      <tbody>
+      {% for l in entradas %}
+        <tr class="{{ 'row-overdue' if l.atrasado else 'row-due-today' if l.vence_hoje else '' }}">
+          <td data-label="Pedido"><strong>#{{ l.id }}</strong><span class="table-sub">{{ l.data|data_br }}</span></td>
+          <td data-label="Empresa"><strong>{{ l.codigo }} — {{ l.empresa }}</strong><span class="table-sub mono">{{ l.cnpj or 'Sem documento' }}</span></td>
+          <td data-label="Notas"><span class="pill pill-{{ l.tipo_nota|lower }}">{{ l.tipo_nota }}</span><span class="table-sub mono">NF {{ l.qtd_nf }} · NFS {{ l.qtd_nfs }} · CTE {{ l.qtd_cte }} · Total {{ l.total }}</span></td>
+          <td data-label="Status"><span class="status-badge status-{{ l.status|lower }}">{{ status_labels[l.status] }}</span>{% if l.atrasado %}<span class="overdue-label">Atrasada</span>{% endif %}</td>
+          <td data-label="Responsável">{{ l.responsavel or '—' }}</td>
+          <td data-label="Prazo">{{ l.prazo|data_br }}</td>
+          <td data-label="Atualização"><span class="table-sub">Criado {{ l.criado_em|datetime_br }}</span>{% if l.atualizado_em %}<span class="table-sub">Alterado {{ l.atualizado_em|datetime_br }}</span>{% endif %}</td>
+          <td data-label="Ações" class="acoes">
+            <a href="{{ url_for('editar_lancamento', lanc_id=l.id) }}" class="icon-btn" title="Editar" aria-label="Editar">✎</a>
+            <a href="{{ url_for('historico', lancamento=l.id) }}" class="icon-btn" title="Histórico" aria-label="Histórico">↺</a>
+            <form method="post" action="{{ url_for('excluir_lancamento', lanc_id=l.id) }}" class="js-confirm"
+                  data-confirm-title="Mover para a lixeira"
+                  data-confirm-message="O lançamento #{{ l.id }} poderá ser restaurado posteriormente.">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn icon-btn-danger" title="Excluir" aria-label="Excluir">×</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="8" class="empty-state">Nenhum lançamento encontrado.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include '_pagination.html' %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.companyData = {
+  {% for e in empresas %}"{{ e.codigo }}": {name: {{ e.nome|tojson }}, doc: {{ (e.cnpj or '')|tojson }}},{% endfor %}
+};
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+[
+  {
+    "codigo": 1,
+    "nome": "COMERCIAL EXEMPLO LTDA",
+    "cnpj": "11.222.333/0001-81"
+  },
+  {
+    "codigo": 2,
+    "nome": "INDUSTRIA MODELO DE PECAS LTDA",
+    "cnpj": "12.345.678/0001-95"
+  },
+  {
+    "codigo": 3,
+    "nome": "PADARIA FICTICIA ME",
+    "cnpj": "98.765.432/0001-98"
+  },
+  {
+    "codigo": 4,
+    "nome": "TRANSPORTES DEMONSTRACAO EIRELI",
+    "cnpj": "24.681.357/0001-40"
+  },
+  {
+    "codigo": 5,
+    "nome": "CLINICA TESTE SERVICOS MEDICOS LTDA",
+    "cnpj": "13.579.246/0001-01"
+  },
+  {
+    "codigo": 6,
+    "nome": "LOJA VIRTUAL EXEMPLO LTDA",
+    "cnpj": "55.544.433/0001-08"
+  },
+  {
+    "codigo": 7,
+    "nome": "FULANO DE TAL (PESSOA FISICA)",
+    "cnpj": "529.982.247-25"
+  },
+  {
+    "codigo": 8,
+    "nome": "CICLANA DA SILVA (PESSOA FISICA)",
+    "cnpj": "111.444.777-35"
+  }
+]

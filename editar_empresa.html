@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Editar empresa{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="eyebrow">Empresa #{{ empresa.codigo }}</span><h1>Editar empresa</h1><p>O código permanece fixo para preservar os vínculos com os lançamentos.</p></div>
+  <a class="btn btn-secondary" href="{{ url_for('empresas') }}">Voltar</a>
+</section>
+<section class="card card-narrow">
+  <form method="post" class="form-grid" autocomplete="off">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <div class="field"><label>Código</label><input type="text" value="{{ empresa.codigo }}" disabled></div>
+    <div class="field field-span-2"><label for="nome">Nome</label><input type="text" id="nome" name="nome" value="{{ empresa.nome }}" required></div>
+    <div class="field"><label for="cnpj">CPF/CNPJ</label><input type="text" id="cnpj" name="cnpj" value="{{ empresa.cnpj or '' }}" data-document-mask maxlength="18"></div>
+    <div class="field"><label for="ativa">Situação</label><select id="ativa" name="ativa"><option value="1" {{ 'selected' if empresa.ativa }}>Ativa</option><option value="0" {{ 'selected' if not empresa.ativa }}>Inativa</option></select></div>
+    <div class="metadata-panel field-span-3"><span><strong>Lançamentos ativos:</strong> {{ empresa.lancamentos_ativos or 0 }}</span><span><strong>Total no histórico:</strong> {{ empresa.lancamentos_total or 0 }}</span></div>
+    <div class="form-actions field-span-4"><button class="btn btn-primary" type="submit">Salvar alterações</button><a class="btn btn-secondary" href="{{ url_for('empresas') }}">Cancelar</a></div>
+  </form>
+</section>
+{% endblock %}

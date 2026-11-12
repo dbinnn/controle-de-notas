@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Histórico{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="eyebrow">Auditoria</span><h1>Histórico de alterações</h1><p>Registro completo de criação, edição, exclusão e restauração dos lançamentos.</p></div>
+</section>
+<section class="card">
+  <form method="get" class="filter-grid">
+    <div class="field field-span-2"><label for="busca">Usuário ou detalhe</label><input type="search" id="busca" name="busca" value="{{ filtros.busca }}" placeholder="E-mail, usuário ou informação da ação"></div>
+    <div class="field"><label for="lancamento">Nº do lançamento</label><input type="text" id="lancamento" name="lancamento" value="{{ filtros.lancamento }}" inputmode="numeric"></div>
+    <div class="field"><label for="acao">Ação</label><select id="acao" name="acao"><option value="">Todas</option>{% for item in acoes %}<option value="{{ item }}" {{ 'selected' if filtros.acao == item }}>{{ item.replace('_',' ').title() }}</option>{% endfor %}</select></div>
+    <div class="filter-actions field-span-4"><button type="submit" class="btn btn-primary">Filtrar</button><a class="btn btn-secondary" href="{{ url_for('historico') }}">Limpar</a></div>
+  </form>
+</section>
+<section class="card">
+  <div class="card-header-inline"><div><span class="eyebrow">Auditoria</span><h2>Eventos registrados</h2></div><span class="count-pill">{{ paginacao.total }}</span></div>
+  <div class="history-list">
+    {% for h in historico %}
+      <article class="history-item">
+        <div class="history-marker"></div>
+        <div class="history-content">
+          <div class="history-topline">
+            <div><span class="status-badge status-history">{{ h.acao.replace('_',' ') }}</span><strong>Lançamento #{{ h.lancamento_id or 'removido' }}</strong></div>
+            <time>{{ h.data_hora|datetime_br }}</time>
+          </div>
+          <p><strong>{{ h.usuario or '—' }}</strong>{% if h.empresa %} · {{ h.codigo }} — {{ h.empresa }}{% endif %}{% if h.detalhes %} · {{ h.detalhes }}{% endif %}</p>
+          {% if h.dados_antes or h.dados_depois %}
+            <details>
+              <summary>Ver dados da alteração</summary>
+              <div class="history-json-grid">
+                <div><h3>Antes</h3><pre>{{ h.dados_antes|json_bonito }}</pre></div>
+                <div><h3>Depois</h3><pre>{{ h.dados_depois|json_bonito }}</pre></div>
+              </div>
+            </details>
+          {% endif %}
+        </div>
+      </article>
+    {% else %}
+      <p class="empty-state">Nenhum evento encontrado.</p>
+    {% endfor %}
+  </div>
+  {% include '_pagination.html' %}
+</section>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% if paginacao.pages > 1 %}
+<nav class="pagination" aria-label="Paginação">
+  <a class="page-link {{ 'disabled' if not paginacao.has_prev }}" href="{{ pagina_url(paginacao.prev_num) if paginacao.has_prev else '#' }}">‹</a>
+  {% for numero in paginacao.numbers %}
+    <a class="page-link {{ 'active' if numero == paginacao.page }}" href="{{ pagina_url(numero) }}">{{ numero }}</a>
+  {% endfor %}
+  <a class="page-link {{ 'disabled' if not paginacao.has_next }}" href="{{ pagina_url(paginacao.next_num) if paginacao.has_next else '#' }}">›</a>
+  <span class="page-summary">{{ paginacao.total }} registro(s)</span>
+</nav>
+{% endif %}

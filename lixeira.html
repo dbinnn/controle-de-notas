@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Lixeira{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="eyebrow">Proteção de dados</span><h1>Lixeira</h1><p>Restaure lançamentos excluídos ou, como administrador, remova-os definitivamente.</p></div>
+  <a class="btn btn-secondary" href="{{ url_for('lancamentos') }}">Voltar aos lançamentos</a>
+</section>
+<section class="card">
+  <form method="get" class="filter-row">
+    <div class="field field-grow"><label for="busca">Busca rápida</label><input type="search" id="busca" name="busca" value="{{ busca }}" placeholder="Código, empresa, CPF/CNPJ ou observação"></div>
+    <button type="submit" class="btn btn-primary">Pesquisar</button>
+    <a href="{{ url_for('lixeira') }}" class="btn btn-secondary">Limpar</a>
+  </form>
+</section>
+<section class="card">
+  <div class="card-header-inline"><div><span class="eyebrow">Itens excluídos</span><h2>Registros na lixeira</h2></div><span class="count-pill">{{ paginacao.total }}</span></div>
+  <div class="table-wrap">
+    <table class="ledger responsive-table">
+      <thead><tr><th>Pedido</th><th>Empresa</th><th>Notas</th><th>Status</th><th>Exclusão</th><th>Ações</th></tr></thead>
+      <tbody>
+      {% for l in entradas %}
+        <tr>
+          <td data-label="Pedido"><strong>#{{ l.id }}</strong><span class="table-sub">{{ l.data|data_br }}</span></td>
+          <td data-label="Empresa"><strong>{{ l.codigo }} — {{ l.empresa }}</strong><span class="table-sub mono">{{ l.cnpj or '—' }}</span></td>
+          <td data-label="Notas"><span class="pill pill-{{ l.tipo_nota|lower }}">{{ l.tipo_nota }}</span><span class="table-sub mono">NF {{ l.qtd_nf }} · NFS {{ l.qtd_nfs }} · CTE {{ l.qtd_cte }} · Total {{ l.total }}</span></td>
+          <td data-label="Status"><span class="status-badge status-{{ l.status|lower }}">{{ status_labels[l.status] }}</span></td>
+          <td data-label="Exclusão"><strong>{{ l.excluido_por or '—' }}</strong><span class="table-sub">{{ l.excluido_em|datetime_br }}</span></td>
+          <td data-label="Ações" class="acoes">
+            <form method="post" action="{{ url_for('restaurar_lancamento', lanc_id=l.id) }}" class="js-confirm"
+                  data-confirm-title="Restaurar lançamento"
+                  data-confirm-message="O lançamento #{{ l.id }} voltará para a lista ativa.">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="btn btn-small btn-secondary">Restaurar</button>
+            </form>
+            {% if current_user_admin %}
+              <form method="post" action="{{ url_for('excluir_lancamento_definitivo', lanc_id=l.id) }}" class="js-confirm"
+                    data-confirm-title="Excluir definitivamente"
+                    data-confirm-message="Esta ação não pode ser desfeita. Um backup será criado antes da exclusão."
+                    data-confirm-phrase="EXCLUIR">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="confirmacao">
+                <button type="submit" class="btn btn-small btn-danger-outline">Excluir definitivamente</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty-state">A lixeira está vazia.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include '_pagination.html' %}
+</section>
+{% endblock %}

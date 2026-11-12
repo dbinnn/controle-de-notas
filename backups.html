@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Backups{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <div><span class="eyebrow">Administração</span><h1>Backups e restauração</h1><p>O sistema cria um backup automático por dia e antes de operações destrutivas.</p></div>
+  <a class="btn btn-primary" href="{{ url_for('baixar_backup_manual') }}">Baixar backup agora</a>
+</section>
+<section class="dashboard-grid">
+  <article class="card">
+    <div class="card-header-inline"><div><span class="eyebrow">Proteção automática</span><h2>Como funciona</h2></div></div>
+    <ul class="feature-list">
+      <li>Um backup automático é criado na primeira utilização de cada dia.</li>
+      <li>Antes de limpar todos os lançamentos, restaurar um banco ou excluir definitivamente, outro backup é criado.</li>
+      <li>Os arquivos ficam na pasta <code>backups</code> do projeto e também podem ser baixados nesta tela.</li>
+    </ul>
+  </article>
+  <article class="card restore-card">
+    <div class="card-header-inline"><div><span class="eyebrow">Restauração</span><h2>Restaurar banco</h2></div></div>
+    <p class="card-copy">A restauração substitui os dados atuais. Antes disso, o sistema salva automaticamente uma cópia do banco que está em uso.</p>
+    <form method="post" action="{{ url_for('restaurar_backup') }}" enctype="multipart/form-data" class="upload-form js-confirm"
+          data-confirm-title="Restaurar banco de dados"
+          data-confirm-message="Os dados atuais serão substituídos pelos dados do arquivo enviado. Um backup do banco atual será criado antes."
+          data-confirm-phrase="RESTAURAR">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="confirmacao">
+      <div class="field"><label for="arquivo-backup">Arquivo .db</label><input type="file" id="arquivo-backup" name="arquivo" accept=".db" required></div>
+      <button type="submit" class="btn btn-danger-outline">Validar e restaurar</button>
+    </form>
+  </article>
+</section>
+<section class="card">
+  <div class="card-header-inline"><div><span class="eyebrow">Arquivos locais</span><h2>Backups disponíveis</h2></div><span class="count-pill">{{ backups|length }}</span></div>
+  <div class="table-wrap">
+    <table class="ledger responsive-table">
+      <thead><tr><th>Arquivo</th><th>Gerado em</th><th>Tamanho</th><th>Ação</th></tr></thead>
+      <tbody>
+      {% for b in backups %}
+        <tr>
+          <td data-label="Arquivo" class="mono">{{ b.nome }}</td>
+          <td data-label="Gerado em">{{ b.modificado_em|datetime_br }}</td>
+          <td data-label="Tamanho">{{ b.tamanho|tamanho_arquivo }}</td>
+          <td data-label="Ação"><a class="btn btn-small btn-secondary" href="{{ url_for('baixar_backup_existente', nome=b.nome) }}">Baixar</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="empty-state">Nenhum backup foi criado ainda.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B1114">
+  <title>{% block title %}Controle de Notas{% endblock %}</title>
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v='2.0.4') }}">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{{ url_for('resumo') }}" aria-label="Ir para o resumo">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo Controle de Notas" class="brand-logo">
+      <span class="brand-text">Controle de Notas</span>
+    </a>
+
+    <button class="menu-toggle" type="button" aria-label="Abrir menu" aria-expanded="false" aria-controls="main-nav">
+      <span></span><span></span><span></span>
+    </button>
+
+    <nav class="nav" id="main-nav">
+      <a href="{{ url_for('resumo') }}" class="{{ 'active' if request.endpoint == 'resumo' else '' }}">Resumo</a>
+      <a href="{{ url_for('lancamentos') }}" class="{{ 'active' if request.endpoint in ['lancamentos','editar_lancamento'] else '' }}">Lançamentos</a>
+      <a href="{{ url_for('empresas') }}" class="{{ 'active' if request.endpoint in ['empresas','editar_empresa'] else '' }}">Empresas</a>
+      <a href="{{ url_for('lixeira') }}" class="{{ 'active' if request.endpoint == 'lixeira' else '' }}">Lixeira</a>
+      <a href="{{ url_for('historico') }}" class="{{ 'active' if request.endpoint == 'historico' else '' }}">Histórico</a>
+      {% if current_user_admin %}
+        <a href="{{ url_for('painel_backups') }}" class="{{ 'active' if request.endpoint in ['painel_backups','baixar_backup_manual','baixar_backup_existente','restaurar_backup'] else '' }}">Backups</a>
+      {% endif %}
+    </nav>
+
+    <div class="user-box">
+      {% if google_configurado and current_user_name %}
+        <div class="user-identification">
+          <span class="user-name">{{ current_user_name }}</span>
+          <span class="role-badge">{{ 'Administrador' if current_user_admin else 'Usuário' }}</span>
+        </div>
+        <a href="{{ url_for('auth.logout') }}" class="user-logout">Sair</a>
+      {% elif google_configurado %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-small">Entrar</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+{% if not google_configurado %}
+<div class="open-mode-banner">
+  Login Google não configurado. O sistema está em modo local aberto; configure o arquivo .env antes de publicar.
+</div>
+{% endif %}
+
+<main class="container">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-stack" aria-live="polite">
+        {% for categoria, msg in messages %}
+          <div class="flash flash-{{ categoria }}" data-auto-dismiss>
+            <span>{{ msg }}</span>
+            <button type="button" class="flash-close" aria-label="Fechar">×</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">Controle de Notas</footer>
+
+<div class="modal-backdrop" id="confirm-modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <button class="modal-close" type="button" aria-label="Fechar">×</button>
+    <div class="modal-icon">!</div>
+    <h2 id="confirm-modal-title">Confirmar ação</h2>
+    <p id="confirm-modal-message"></p>
+    <div class="field modal-phrase-field" hidden>
+      <label for="confirm-modal-phrase">Digite a confirmação</label>
+      <input id="confirm-modal-phrase" type="text" autocomplete="off">
+      <small id="confirm-modal-hint"></small>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary modal-cancel">Cancelar</button>
+      <button type="button" class="btn btn-danger-solid modal-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='app.js', v='2.0.4') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

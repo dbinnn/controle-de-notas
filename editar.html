@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Editar lançamento{% endblock %}
+{% block content %}
+
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">Lançamento #{{ entrada.id }}</span>
+    <h1>Editar solicitação</h1>
+    <p>As alterações ficam registradas no histórico com usuário, data e hora.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('historico', lancamento=entrada.id) }}">Ver histórico</a>
+</section>
+
+<section class="card">
+  {% if duplicado %}
+    <div class="duplicate-alert">
+      <div>
+        <strong>Possível lançamento duplicado</strong>
+        <span>O lançamento #{{ duplicado.id }} possui a mesma data, empresa, tipo e quantidades.</span>
+      </div>
+      <button type="button" class="btn btn-warning" data-confirm-duplicate="#form-editar-lancamento">Salvar mesmo assim</button>
+    </div>
+  {% endif %}
+
+  <form method="post" id="form-editar-lancamento" class="form-grid form-grid-large" autocomplete="off">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="confirmar_duplicado" value="0">
+    <div class="field">
+      <label for="data">Data do pedido</label>
+      <input type="date" id="data" name="data" value="{{ form_data.data }}" required>
+    </div>
+    <div class="field">
+      <label for="codigo">Código da empresa</label>
+      <input type="text" id="codigo" name="codigo" list="lista-empresas" value="{{ form_data.codigo }}" required data-company-code>
+      <datalist id="lista-empresas">{% for e in empresas %}<option value="{{ e.codigo }}">{{ e.nome }}{{ ' (inativa)' if not e.ativa else '' }}</option>{% endfor %}</datalist>
+    </div>
+    <div class="field field-span-2">
+      <label>Empresa selecionada</label>
+      <div class="preview" data-company-preview>{{ entrada.empresa }} — {{ entrada.cnpj or 'Sem documento' }}</div>
+    </div>
+    <div class="field">
+      <label for="tipo_nota">Tipo de nota</label>
+      <select id="tipo_nota" name="tipo_nota" required>
+        {% for tipo in ['NF','NFS','CTE'] %}<option value="{{ tipo }}" {{ 'selected' if form_data.tipo_nota == tipo }}>{{ tipo }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="field"><label for="qtd_nf">Qtd. NF</label><input type="number" id="qtd_nf" name="qtd_nf" min="0" value="{{ form_data.qtd_nf }}"></div>
+    <div class="field"><label for="qtd_nfs">Qtd. NFS</label><input type="number" id="qtd_nfs" name="qtd_nfs" min="0" value="{{ form_data.qtd_nfs }}"></div>
+    <div class="field"><label for="qtd_cte">Qtd. CTE</label><input type="number" id="qtd_cte" name="qtd_cte" min="0" value="{{ form_data.qtd_cte }}"></div>
+    <div class="field">
+      <label for="status">Status</label>
+      <select id="status" name="status">{% for status in status_validos %}<option value="{{ status }}" {{ 'selected' if form_data.status == status }}>{{ status_labels[status] }}</option>{% endfor %}</select>
+    </div>
+    <div class="field"><label for="prazo">Prazo</label><input type="date" id="prazo" name="prazo" value="{{ form_data.prazo }}"></div>
+    <div class="field field-span-2">
+      <label for="responsavel">Responsável pelo atendimento</label>
+      <input type="text" id="responsavel" name="responsavel" list="lista-responsaveis" value="{{ form_data.responsavel }}" required>
+      <datalist id="lista-responsaveis">{% for nome in responsaveis %}<option value="{{ nome }}">{% endfor %}</datalist>
+    </div>
+    <div class="field field-span-2"><label for="observacao">Observação</label><textarea id="observacao" name="observacao" rows="4" maxlength="2000">{{ form_data.observacao }}</textarea></div>
+    <div class="field field-span-2"><label for="observacoes_internas">Observações internas</label><textarea id="observacoes_internas" name="observacoes_internas" rows="4" maxlength="4000">{{ form_data.observacoes_internas }}</textarea></div>
+    <div class="metadata-panel field-span-4">
+      <span><strong>Criado por:</strong> {{ entrada.lancado_por or '—' }}</span>
+      <span><strong>Criado em:</strong> {{ entrada.criado_em|datetime_br }}</span>
+      <span><strong>Última alteração:</strong> {{ entrada.atualizado_em|datetime_br }}</span>
+      <span><strong>Concluído em:</strong> {{ entrada.concluido_em|datetime_br }}</span>
+    </div>
+    <div class="form-actions field-span-4">
+      <button type="submit" class="btn btn-primary">Salvar alterações</button>
+      <a href="{{ url_for('lancamentos') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+window.companyData = {
+  {% for e in empresas %}"{{ e.codigo }}": {name: {{ e.nome|tojson }}, doc: {{ (e.cnpj or '')|tojson }}},{% endfor %}
+};
+</script>
+{% endblock %}

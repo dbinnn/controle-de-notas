@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block title %}Resumo{% endblock %}
+{% block content %}
+
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">Visão geral</span>
+    <h1>Resumo mensal</h1>
+    <p>Acompanhe volumes, andamento e prazos das solicitações.</p>
+  </div>
+  <a class="btn btn-primary" href="{{ url_for('export', empresa=codigo_filtro or '', mes=mes_str) }}">Exportar Excel</a>
+</section>
+
+<section class="card">
+  <form method="get" class="filter-row auto-submit-form">
+    <div class="field field-grow">
+      <label for="empresa">Empresa</label>
+      <select id="empresa" name="empresa" data-auto-submit>
+        <option value="" {{ 'selected' if not codigo_filtro }}>(Todas)</option>
+        {% for e in empresas %}
+          <option value="{{ e.codigo }}" {{ 'selected' if codigo_filtro == e.codigo }}>{{ e.codigo }} — {{ e.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="field">
+      <label for="mes">Mês de referência</label>
+      <input type="month" id="mes" name="mes" value="{{ mes_str }}" data-auto-submit>
+    </div>
+    <noscript><button class="btn btn-secondary" type="submit">Aplicar</button></noscript>
+  </form>
+</section>
+
+<section class="card mes-status {{ 'mes-status-fechado' if mes_fechado else 'mes-status-aberto' }}">
+  <div class="mes-status-info">
+    <span class="status-dot"></span>
+    <div>
+      <strong>Mês {{ mes_str }} {{ 'fechado' if mes_fechado else 'aberto' }}</strong>
+      {% if mes_fechado %}
+        <span>Fechado por {{ mes_fechado.fechado_por }} em {{ mes_fechado.fechado_em|datetime_br }}</span>
+      {% else %}
+        <span>Lançamentos e alterações estão liberados.</span>
+      {% endif %}
+    </div>
+  </div>
+  {% if mes_fechado %}
+    <form method="post" action="{{ url_for('desbloquear_mes') }}" class="js-confirm"
+          data-confirm-title="Desbloquear mês"
+          data-confirm-message="O mês voltará a aceitar lançamentos, edições, exclusões e restaurações."
+          data-confirm-phrase="DESBLOQUEAR">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="mes" value="{{ mes_str }}">
+      <input type="hidden" name="confirmacao">
+      <button type="submit" class="btn btn-danger-outline">Desbloquear mês</button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('fechar_mes') }}" class="js-confirm"
+          data-confirm-title="Fechar mês"
+          data-confirm-message="Enquanto o mês estiver fechado, nenhum lançamento dele poderá ser criado, alterado, excluído ou restaurado.">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="mes" value="{{ mes_str }}">
+      <button type="submit" class="btn btn-secondary">Fechar mês</button>
+    </form>
+  {% endif %}
+</section>
+
+<section class="stats-grid">
+  <article class="stat-card"><span>NF</span><strong>{{ resumo.total_nf }}</strong><small>no filtro selecionado</small></article>
+  <article class="stat-card"><span>NFS</span><strong>{{ resumo.total_nfs }}</strong><small>no filtro selecionado</small></article>
+  <article class="stat-card"><span>CTE</span><strong>{{ resumo.total_cte }}</strong><small>no filtro selecionado</small></article>
+  <article class="stat-card stat-card-primary"><span>Total de notas</span><strong>{{ resumo.total_geral }}</strong><small>{{ resumo.n }} solicitação(ões)</small></article>
+</section>
+
+<section class="stats-grid stats-grid-status">
+  <article class="mini-stat status-pendente"><span>Pendentes</span><strong>{{ resumo.status.PENDENTE }}</strong></article>
+  <article class="mini-stat status-andamento"><span>Em andamento</span><strong>{{ resumo.status.EM_ANDAMENTO }}</strong></article>
+  <article class="mini-stat status-concluida"><span>Concluídas</span><strong>{{ resumo.status.CONCLUIDA }}</strong></article>
+  <article class="mini-stat status-cancelada"><span>Canceladas</span><strong>{{ resumo.status.CANCELADA }}</strong></article>
+</section>
+
+<section class="dashboard-grid">
+  <article class="card dashboard-card dashboard-danger">
+    <div class="card-header-inline">
+      <div><span class="eyebrow">Atenção</span><h2>Atrasadas</h2></div>
+      <span class="count-pill count-danger">{{ pendencias.qtd_atrasadas }}</span>
+    </div>
+    <div class="task-list">
+      {% for l in pendencias.atrasadas %}
+        <a class="task-item" href="{{ url_for('editar_lancamento', lanc_id=l.id) }}">
+          <div><strong>#{{ l.codigo }} · {{ l.empresa }}</strong><span>{{ status_labels[l.status] }} · {{ l.responsavel }}</span></div>
+          <time>{{ l.prazo|data_br }}</time>
+        </a>
+      {% else %}
+        <p class="empty-state compact">Nenhuma solicitação atrasada.</p>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="card dashboard-card">
+    <div class="card-header-inline">
+      <div><span class="eyebrow">Hoje</span><h2>Vencem hoje</h2></div>
+      <span class="count-pill">{{ pendencias.qtd_hoje }}</span>
+    </div>
+    <div class="task-list">
+      {% for l in pendencias.hoje %}
+        <a class="task-item" href="{{ url_for('editar_lancamento', lanc_id=l.id) }}">
+          <div><strong>#{{ l.codigo }} · {{ l.empresa }}</strong><span>{{ status_labels[l.status] }} · {{ l.responsavel }}</span></div>
+          <time>Hoje</time>
+        </a>
+      {% else %}
+        <p class="empty-state compact">Nenhuma solicitação vence hoje.</p>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="card narrative-card">
+  {% if resumo.n == 0 %}
+    <p>Nenhum lançamento encontrado para <strong>{{ mes_str }}</strong>{% if codigo_filtro %} e para a empresa selecionada{% endif %}.</p>
+  {% else %}
+    <p>
+      Entre <strong>{{ resumo.primeira_data|data_br }}</strong> e <strong>{{ resumo.ultima_data|data_br }}</strong>,
+      {% if codigo_filtro %}<strong>{{ resumo.empresa_nome }}</strong> registrou{% else %}foram registradas{% endif %}
+      <strong>{{ resumo.total_geral }}</strong> notas em {{ resumo.n }} solicitação(ões).
+    </p>
+  {% endif %}
+</section>
+
+<section class="dashboard-grid dashboard-grid-chart">
+  <article class="card">
+    <div class="card-header-inline">
+      <div><span class="eyebrow">Destaque do filtro</span><h2>Maior volume</h2></div>
+    </div>
+    {% if resumo.top_total %}
+      <div class="ranking">
+        <div class="ranking-code">#{{ resumo.top_codigo }}</div>
+        <div><strong>{{ resumo.top_nome }}</strong><span>Empresa com maior volume em {{ mes_str }}</span></div>
+        <div class="ranking-total">{{ resumo.top_total }}<small>notas</small></div>
+      </div>
+    {% else %}
+      <p class="empty-state compact">Sem dados no período.</p>
+    {% endif %}
+  </article>
+
+  <article class="card chart-card">
+    <div class="card-header-inline">
+      <div><span class="eyebrow">Tendência</span><h2>Evolução mensal</h2></div>
+      <span class="hint">{{ resumo.empresa_nome or 'Todas as empresas' }}</span>
+    </div>
+    <canvas id="grafico-evolucao" height="115"></canvas>
+  </article>
+</section>
+
+<section class="card collapsible-card" data-collapsible-card="calendar-detail">
+  <div class="card-header-inline collapsible-card-header">
+    <div>
+      <span class="eyebrow">Calendário</span>
+      <h2>Detalhe por dia</h2>
+      <span class="hint collapsible-card-hint">Todos os valores respeitam o mês e a empresa selecionados.</span>
+    </div>
+    <button
+      class="btn btn-secondary btn-collapse"
+      type="button"
+      data-collapse-target="calendar-detail-body"
+      data-storage-key="controle-notas:calendar-detail"
+      aria-expanded="false"
+      aria-controls="calendar-detail-body">
+      <span class="btn-collapse-label">Mostrar calendário</span>
+      <span class="btn-collapse-icon" aria-hidden="true">⌄</span>
+    </button>
+  </div>
+
+  <div id="calendar-detail-body" class="collapsible-content" hidden>
+    <div class="table-wrap">
+      <table class="ledger ledger-compact responsive-table">
+        <thead><tr><th>Dia</th><th class="num">NF</th><th class="num">NFS</th><th class="num">CTE</th><th class="num">Total</th></tr></thead>
+        <tbody>
+          {% for d in day_rows %}
+            <tr class="{{ 'row-zero' if d.total == 0 }}">
+              <td data-label="Dia">{{ '%02d'|format(d.dia) }}</td>
+              <td data-label="NF" class="num mono">{{ d.nf }}</td>
+              <td data-label="NFS" class="num mono">{{ d.nfs }}</td>
+              <td data-label="CTE" class="num mono">{{ d.cte }}</td>
+              <td data-label="Total" class="num mono total-cell">{{ d.total }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+(() => {
+  const canvas = document.getElementById('grafico-evolucao');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const meses = {{ evolucao|map(attribute='mes')|list|tojson }};
+  const serieNF = {{ evolucao|map(attribute='nf')|list|tojson }};
+  const serieNFS = {{ evolucao|map(attribute='nfs')|list|tojson }};
+  const serieCTE = {{ evolucao|map(attribute='cte')|list|tojson }};
+  new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: meses,
+      datasets: [
+        {label: 'NF', data: serieNF, backgroundColor: '#04BAB2'},
+        {label: 'NFS', data: serieNFS, backgroundColor: '#8B6FE0'},
+        {label: 'CTE', data: serieCTE, backgroundColor: '#E0A84D'}
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      scales: {
+        x: {stacked: true, ticks: {color: '#8B9BA0'}, grid: {display: false}},
+        y: {stacked: true, beginAtZero: true, ticks: {color: '#8B9BA0', precision: 0}, grid: {color: 'rgba(255,255,255,.06)'}}
+      },
+      plugins: {legend: {labels: {color: '#E7F2F2', boxWidth: 12}}}
+    }
+  });
+})();
+</script>
+{% endblock %}

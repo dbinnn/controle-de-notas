@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Empresas{% endblock %}
+{% block content %}
+
+<section class="page-heading">
+  <div>
+    <span class="eyebrow">Cadastros</span>
+    <h1>Empresas</h1>
+    <p>Cadastre, pesquise, edite, importe e inative empresas sem perder o histórico.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('exportar_empresas') }}">Exportar empresas</a>
+</section>
+
+<section class="dashboard-grid">
+  <article class="card">
+    <div class="card-header-inline"><div><span class="eyebrow">Novo cadastro</span><h2>Cadastrar empresa</h2></div></div>
+    <form method="post" class="form-grid" autocomplete="off">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="codigo">Código</label><input type="text" id="codigo" name="codigo" inputmode="numeric" required></div>
+      <div class="field field-span-2"><label for="nome">Nome</label><input type="text" id="nome" name="nome" required></div>
+      <div class="field"><label for="cnpj">CPF/CNPJ</label><input type="text" id="cnpj" name="cnpj" data-document-mask maxlength="18" placeholder="Somente números ou formatado"></div>
+      <div class="form-actions field-span-4"><button type="submit" class="btn btn-primary">Cadastrar empresa</button></div>
+    </form>
+  </article>
+
+  <article class="card">
+    <div class="card-header-inline"><div><span class="eyebrow">Planilha</span><h2>Importar empresas</h2></div></div>
+    <p class="card-copy">Use um arquivo XLSX com as colunas <strong>Código</strong>, <strong>Nome</strong>, <strong>CPF/CNPJ</strong> e, opcionalmente, <strong>Situação</strong>. Códigos existentes serão atualizados.</p>
+    <form method="post" action="{{ url_for('importar_empresas') }}" enctype="multipart/form-data" class="upload-form">
+      <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label for="arquivo-empresas">Arquivo XLSX</label><input type="file" id="arquivo-empresas" name="arquivo" accept=".xlsx" required></div>
+      <button type="submit" class="btn btn-primary">Importar planilha</button>
+    </form>
+  </article>
+</section>
+
+<section class="card">
+  <div class="card-header-inline"><div><span class="eyebrow">Pesquisa</span><h2>Empresas cadastradas</h2></div><span class="count-pill">{{ paginacao.total }}</span></div>
+  <form method="get" class="filter-row">
+    <div class="field field-grow"><label for="busca">Busca rápida</label><input type="search" id="busca" name="busca" value="{{ busca }}" placeholder="Código, nome ou CPF/CNPJ"></div>
+    <div class="field"><label for="situacao">Situação</label><select id="situacao" name="situacao"><option value="ativas" {{ 'selected' if situacao == 'ativas' }}>Ativas</option><option value="inativas" {{ 'selected' if situacao == 'inativas' }}>Inativas</option><option value="todas" {{ 'selected' if situacao == 'todas' }}>Todas</option></select></div>
+    <button type="submit" class="btn btn-primary">Pesquisar</button>
+    <a href="{{ url_for('empresas') }}" class="btn btn-secondary">Limpar</a>
+  </form>
+
+  <div class="table-wrap">
+    <table class="ledger responsive-table">
+      <thead><tr><th>Código</th><th>Empresa</th><th>CPF/CNPJ</th><th>Situação</th><th>Lançamentos</th><th>Ações</th></tr></thead>
+      <tbody>
+      {% for e in empresas %}
+        <tr class="{{ 'row-inactive' if not e.ativa else '' }}">
+          <td data-label="Código" class="mono">{{ e.codigo }}</td>
+          <td data-label="Empresa"><strong>{{ e.nome }}</strong></td>
+          <td data-label="CPF/CNPJ" class="mono">{{ e.cnpj or '—' }}</td>
+          <td data-label="Situação"><span class="status-badge {{ 'status-concluida' if e.ativa else 'status-cancelada' }}">{{ 'Ativa' if e.ativa else 'Inativa' }}</span></td>
+          <td data-label="Lançamentos"><strong>{{ e.lancamentos_ativos or 0 }}</strong><span class="table-sub">ativos · {{ e.lancamentos_total or 0 }} no histórico</span></td>
+          <td data-label="Ações" class="acoes">
+            <a class="icon-btn" href="{{ url_for('editar_empresa', codigo=e.codigo) }}" title="Editar">✎</a>
+            <form method="post" action="{{ url_for('alternar_empresa', codigo=e.codigo) }}" class="js-confirm"
+                  data-confirm-title="{{ 'Inativar' if e.ativa else 'Ativar' }} empresa"
+                  data-confirm-message="{{ 'A empresa deixará de aparecer em novos lançamentos, mas o histórico será mantido.' if e.ativa else 'A empresa voltará a aparecer na lista de novos lançamentos.' }}">
+              <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="icon-btn" title="{{ 'Inativar' if e.ativa else 'Ativar' }}">{{ '○' if e.ativa else '●' }}</button>
+            </form>
+            {% if current_user_admin and not e.lancamentos_total %}
+              <form method="post" action="{{ url_for('excluir_empresa', codigo=e.codigo) }}" class="js-confirm"
+                    data-confirm-title="Excluir empresa"
+                    data-confirm-message="Esta empresa não possui lançamentos. A exclusão será definitiva."
+                    data-confirm-phrase="EXCLUIR">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="confirmacao">
+                <button type="submit" class="icon-btn icon-btn-danger" title="Excluir">×</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty-state">Nenhuma empresa encontrada.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include '_pagination.html' %}
+</section>
+{% endblock %}
